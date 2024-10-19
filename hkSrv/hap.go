@@ -2,8 +2,11 @@ package hkSrv
 
 import (
 	"context"
+
 	"github.com/brutella/hap"
 	"github.com/brutella/hap/accessory"
+
+	"github.com/egregors/hk/log"
 )
 
 type HapSrvOpts struct {
@@ -22,6 +25,13 @@ type HapSrv struct {
 }
 
 func New(hapSrvOpts *HapSrvOpts) (*HapSrv, error) {
+	log.Info.Println("make HapSrv")
+
+	// see: https://github.com/brutella/hap/pull/53
+	hapSrvOpts.Bridge.A.Id = 1
+	hapSrvOpts.Thermometer.A.Id = 2
+	hapSrvOpts.Humidifier.A.Id = 3
+
 	s, err := hap.NewServer(
 		hapSrvOpts.DB,
 		hapSrvOpts.Bridge.A,
@@ -33,6 +43,7 @@ func New(hapSrvOpts *HapSrvOpts) (*HapSrv, error) {
 	}
 
 	if hapSrvOpts.Pin != "" {
+		log.Info.Printf("set custom PIN")
 		s.Pin = hapSrvOpts.Pin
 	}
 

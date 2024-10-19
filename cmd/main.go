@@ -2,20 +2,53 @@ package main
 
 import (
 	"context"
-	"github.com/brutella/hap"
-	"github.com/brutella/hap/accessory"
-	"github.com/egregors/hk/hkSrv"
-	"github.com/egregors/hk/sensors"
-	"github.com/egregors/hk/srv"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/brutella/hap"
+	"github.com/brutella/hap/accessory"
+	"github.com/d2r2/go-logger"
+
+	"github.com/egregors/hk/hkSrv"
+	"github.com/egregors/hk/log"
+	"github.com/egregors/hk/sensors"
+	"github.com/egregors/hk/srv"
 )
+
+func main() {
+	setupLogger()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	db := hap.NewFsStore("./db")
+	server := srv.New(db, makeClimate(), makeHkSrv(db))
+
+	go graceful(cancel)
+
+	if err := server.Run(ctx); err != nil {
+		log.Erro.Printf("can't run server: %s", err.Error())
+		os.Exit(1)
+	}
+}
+
+func graceful(cancel context.CancelFunc) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	<-c
+	log.Info.Println("server shutdown...")
+
+	signal.Stop(c)
+	cancel()
+
+	os.Exit(0)
+}
 
 func makeClimate() srv.ClimateSensor {
 	climate, err := sensors.NewBME280()
 	if err != nil {
-		panic(err)
+		log.Erro.Printf("can't create BME280 sensor: %s", err.Error())
+		os.Exit(1)
 	}
 
 	return climate
@@ -48,32 +81,21 @@ func makeHkSrv(db hap.Store) *hkSrv.HapSrv {
 		}),
 	})
 	if err != nil {
-		panic(err)
+		log.Erro.Printf("can't create HAP server: %s", err.Error())
+		os.Exit(1)
 	}
 
 	return hk
 }
 
-func main() {
-	// TODO:
-	// 	- [ ] don't panic
-	// 	- [ ] add proper logger
-	//  - [ ] collect metrics (t, h)
+func setupLogger() {
+	err := logger.ChangePackageLogLevel("i2c", logger.InfoLevel)
+	if err != nil {
+		log.Erro.Printf("can't setup i2c logger to INTO: %s", err.Error())
+	}
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-c
-		signal.Stop(c)
-		cancel()
-	}()
-
-	db := hap.NewFsStore("./db")
-	s := srv.New(db, makeClimate(), makeHkSrv(db))
-
-	if err := s.Run(ctx); err != nil {
-		panic(err)
+	err = logger.ChangePackageLogLevel("bsbmp", logger.InfoLevel)
+	if err != nil {
+		log.Erro.Printf("can't setup bsbmp logger to INTO: %s", err.Error())
 	}
 }

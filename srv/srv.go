@@ -8,12 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brutella/hap"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/brutella/hap"
+	"github.com/egregors/hk/log"
 )
 
-const sensorPullingSleep = 5
+const (
+	pullPushSleep = 5
+)
 
 type HapServer interface {
 	SetCurrentTemperature(t float64)
@@ -37,41 +40,27 @@ type Server struct {
 	climate ClimateSensor
 	store   Store
 
-	mu           *sync.Mutex
+	mu           *sync.RWMutex
 	currT, currH float64
 }
 
 func New(store Store, climate ClimateSensor, hapSrv HapServer) *Server {
-	//mux := http.NewServeMux()
-	//mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	//	t, h, err := getTempAndHumi(*sensor)
-	//	if err != nil {
-	//		fmt.Fprintf(w, fmt.Sprintf("ERR: %s", err.Error()))
-	//
-	//		return
-	//	}
-	//
-	//	msg := fmt.Sprintf("Temp %v *C\nHumi %0.2f percent", t, h)
-	//	fmt.Println(msg)
-	//
-	//	fmt.Fprintf(w, msg)
-	//})
-
 	return &Server{
-		// TODO: do i need it here?
 		webSrv:  nil,
 		hkSrv:   hapSrv,
 		climate: climate,
 		store:   store,
+		mu:      &sync.RWMutex{},
 	}
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	// go sensor pulling
 	go func() {
+		log.Info.Printf("start syncing sensor data with %d seconds sleep", pullPushSleep)
 		for {
-			s.pullSensorData()
-			<-time.After(sensorPullingSleep * time.Second)
+			s.pullDataFromSensor()
+			s.pushDataToHK()
+			<-time.After(pullPushSleep * time.Second)
 		}
 	}()
 
@@ -79,19 +68,19 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// go web server
 	g.Go(func() error {
-		fmt.Println("web server listen on http://localhost:80")
-		return s.webSrv.ListenAndServe()
+		log.Info.Println("start web server on http://localhost:80")
+		return s.runWebServer()
 	})
 	// go hap server
 	g.Go(func() error {
-		fmt.Println("HAP server is up")
-		return s.hkSrv.ListenAndServe(ctx)
+		log.Info.Println("start HAP server")
+		return s.runHapServer(ctx)
 	})
 
 	return g.Wait()
 }
 
-func (s *Server) pullSensorData() {
+func (s *Server) pullDataFromSensor() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -110,14 +99,20 @@ func (s *Server) pullSensorData() {
 		return err
 	})
 	if err = g.Wait(); err != nil {
-		// TODO: replace it with a logger
-		fmt.Printf("get sensor err: %s", err.Error())
+		log.Erro.Printf("can't get sensor data: %s", err.Error())
 
 		return
 	}
 
-	s.currT = t
-	s.currH = h
+	s.currT, s.currH = t, h
+}
+
+func (s *Server) pushDataToHK() {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	s.hkSrv.SetCurrentTemperature(s.currT)
+	s.hkSrv.SetCurrentHumidity(s.currH)
 }
 
 func (s *Server) runWebServer() error {
@@ -126,13 +121,17 @@ func (s *Server) runWebServer() error {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprintf(w, fmt.Sprintf("Temp %v *C\nHumi %0.2f percent", s.currT, s.currH))
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		_, _ = fmt.Fprintf(w, "Temp %v *C\nHumi %0.2f percent", s.currT, s.currH)
 	})
 
 	s.webSrv = &http.Server{
-		Addr:    ":80",
-		Handler: mux,
+		Addr:              ":80",
+		Handler:           mux,
+		ReadHeaderTimeout: 1 * time.Second,
 	}
 
 	return s.webSrv.ListenAndServe()

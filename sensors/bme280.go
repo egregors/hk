@@ -3,7 +3,8 @@ package sensors
 import (
 	"github.com/d2r2/go-bsbmp"
 	"github.com/d2r2/go-i2c"
-	"github.com/d2r2/go-logger"
+
+	"github.com/egregors/hk/log"
 )
 
 type BME280 struct {
@@ -11,15 +12,12 @@ type BME280 struct {
 }
 
 func NewBME280() (*BME280, error) {
-	_ = logger.ChangePackageLogLevel("conn", logger.InfoLevel)
-	_ = logger.ChangePackageLogLevel("bsbmp", logger.InfoLevel)
+	log.Info.Println("make BME280 sensor")
 
 	conn, err := i2c.NewI2C(0x77, 1)
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() { _ = conn.Close() }()
 
 	sensor, err := bsbmp.NewBMP(bsbmp.BME280, conn)
 	if err != nil {
