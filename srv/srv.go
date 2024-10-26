@@ -16,6 +16,9 @@ import (
 
 const (
 	pullPushSleep = 5
+
+	temperatureKey = "current_temperature"
+	humidityKey    = "current_humidity"
 )
 
 type HapServer interface {
@@ -34,22 +37,28 @@ type Store interface {
 	hap.Store
 }
 
+type Metrics interface {
+	Gauge(key string, val float64)
+}
+
 type Server struct {
 	webSrv  *http.Server
 	hkSrv   HapServer
 	climate ClimateSensor
 	store   Store
+	metrics Metrics
 
 	mu           *sync.RWMutex
 	currT, currH float64
 }
 
-func New(store Store, climate ClimateSensor, hapSrv HapServer) *Server {
+func New(store Store, climate ClimateSensor, hapSrv HapServer, metrics Metrics) *Server {
 	return &Server{
 		webSrv:  nil,
 		hkSrv:   hapSrv,
 		climate: climate,
 		store:   store,
+		metrics: metrics,
 		mu:      &sync.RWMutex{},
 	}
 }
@@ -105,6 +114,9 @@ func (s *Server) pullDataFromSensor() {
 	}
 
 	s.currT, s.currH = t, h
+
+	s.metrics.Gauge(temperatureKey, s.currT)
+	s.metrics.Gauge(humidityKey, s.currH)
 }
 
 func (s *Server) pushDataToHK() {

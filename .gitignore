@@ -26,3 +26,6 @@ go.work.sum
 
 # hap db
 db/
+
+# app dump
+hk-dump.gob

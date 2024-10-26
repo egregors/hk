@@ -1,4 +1,4 @@
-package hkSrv
+package homekit
 
 import (
 	"context"
@@ -24,7 +24,7 @@ type HapSrv struct {
 	humidifier  *accessory.Humidifier
 }
 
-func New(hapSrvOpts *HapSrvOpts) (*HapSrv, error) {
+func NewHapSrv(hapSrvOpts *HapSrvOpts) (*HapSrv, error) {
 	log.Info.Println("make HapSrv")
 
 	// see: https://github.com/brutella/hap/pull/53

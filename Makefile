@@ -5,10 +5,18 @@ GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/ | grep -v _test.go)
 
 ## Common tasks
 
+.PHONY: run
+run:  ## Run dev version
+	@go run cmd/dev/main.go
+
 .PHONY: build
 build:  ## Build server and put bin into ~/go/bin/
-	@go build -o t-hk-srv cmd/main.go
+	@go build -o t-hk-srv cmd/prod/main.go
 	mv ./t-hk-srv ~/go/bin/
+
+.PHONY: lint
+lint:  ## Lint the files
+	@golangci-lint run
 
 ## Help
 

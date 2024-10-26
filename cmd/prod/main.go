@@ -5,25 +5,33 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/brutella/hap"
 	"github.com/brutella/hap/accessory"
 	"github.com/d2r2/go-logger"
 
-	"github.com/egregors/hk/hkSrv"
+	"github.com/egregors/hk/internal/homekit"
+	"github.com/egregors/hk/internal/metrics"
+	"github.com/egregors/hk/internal/sensors"
 	"github.com/egregors/hk/log"
-	"github.com/egregors/hk/sensors"
 	"github.com/egregors/hk/srv"
+)
+
+const (
+	metricsRetention = 24 * time.Hour
+	hapPIN           = "11112222" // TODO: use secure pin (not this one)
 )
 
 func main() {
 	setupLogger()
 
-	ctx, cancel := context.WithCancel(context.Background())
 	db := hap.NewFsStore("./db")
-	server := srv.New(db, makeClimate(), makeHkSrv(db))
+	m, dumpFn := makeMetrics()
+	server := srv.New(db, makeClimate(), makeHkSrv(db), m)
 
-	go graceful(cancel)
+	ctx, cancel := context.WithCancel(context.Background())
+	go graceful(cancel, dumpFn)
 
 	if err := server.Run(ctx); err != nil {
 		log.Erro.Printf("can't run server: %s", err.Error())
@@ -31,33 +39,48 @@ func main() {
 	}
 }
 
-func graceful(cancel context.CancelFunc) {
-	c := make(chan os.Signal)
+func graceful(cancel context.CancelFunc, dumpFn metrics.DumpFn) {
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	<-c
 	log.Info.Println("server shutdown...")
 
 	signal.Stop(c)
+
+	log.Info.Println("ctx cancel")
 	cancel()
+
+	log.Info.Println("try make a dump to restore it next time...")
+	if err := dumpFn(); err != nil {
+		log.Erro.Printf("can't make a metrics dump: %s", err.Error())
+	} else {
+		log.Info.Println("done")
+	}
+
+	log.Info.Println("buy")
 
 	os.Exit(0)
 }
 
+func makeMetrics() (m srv.Metrics, dump metrics.DumpFn) {
+	return metrics.New(metrics.WithRetention(metricsRetention), metrics.WithBackup())
+}
+
 func makeClimate() srv.ClimateSensor {
-	climate, err := sensors.NewBME280()
+	bme280, err := sensors.NewBME280()
 	if err != nil {
 		log.Erro.Printf("can't create BME280 sensor: %s", err.Error())
 		os.Exit(1)
 	}
 
-	return climate
+	return bme280
 }
 
-func makeHkSrv(db hap.Store) *hkSrv.HapSrv {
-	hk, err := hkSrv.New(&hkSrv.HapSrvOpts{
+func makeHkSrv(db hap.Store) *homekit.HapSrv {
+	hk, err := homekit.NewHapSrv(&homekit.HapSrvOpts{
 		DB:  db,
-		Pin: "11112222", // TODO: do not forget change pin!
+		Pin: hapPIN,
 		Bridge: accessory.NewBridge(accessory.Info{
 			Name:         "Raspberry Pi5",
 			SerialNumber: "-",
@@ -89,6 +112,8 @@ func makeHkSrv(db hap.Store) *hkSrv.HapSrv {
 }
 
 func setupLogger() {
+	log.Debg.Off()
+
 	err := logger.ChangePackageLogLevel("i2c", logger.InfoLevel)
 	if err != nil {
 		log.Erro.Printf("can't setup i2c logger to INTO: %s", err.Error())
