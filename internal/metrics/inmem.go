@@ -98,6 +98,43 @@ func (m *InMem) Gauge(key string, val float64) {
 	}()
 }
 
+func (m *InMem) GetForPeriodByH(key string, dur time.Duration) map[string]float64 {
+	res := make(map[string]float64)
+	var xs []GaugeM
+
+	mByKey, ok := m.GaugeTimeLine[key]
+	if !ok {
+		return nil
+	}
+
+	start, end := time.Now().Add(-dur), time.Now()
+
+	for _, val := range mByKey {
+		if val.T.After(start) && val.T.Before(end) {
+			xs = append(xs, val)
+		}
+	}
+
+	hourlyData := make(map[string][]float64)
+
+	for _, x := range xs {
+		hour := fmt.Sprintf("%02d", x.T.Hour()+1)
+		hourlyData[hour] = append(hourlyData[hour], x.V)
+	}
+
+	for hour, values := range hourlyData {
+		var sum float64
+		for _, val := range values {
+			sum += val
+		}
+		if len(values) > 0 {
+			res[hour] = sum / float64(len(values))
+		}
+	}
+
+	return res
+}
+
 func (m *InMem) collector() {
 	log.Debg.Println("collector started")
 	for msg := range m.gaugeTLch {

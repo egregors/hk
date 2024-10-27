@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +41,7 @@ type Store interface {
 
 type Metrics interface {
 	Gauge(key string, val float64)
+	GetForPeriodByH(key string, dur time.Duration) map[string]float64
 }
 
 type Server struct {
@@ -137,7 +140,14 @@ func (s *Server) runWebServer() error {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		_, _ = fmt.Fprintf(w, "Temp %v *C\nHumi %0.2f percent", s.currT, s.currH)
+		_, _ = fmt.Fprintf(
+			w,
+			"Temp %v *C\nHumi %0.2f percent\n\n%s",
+			s.currT, s.currH, renderHourlyAverageTable(
+				s.metrics.GetForPeriodByH(temperatureKey, 24*time.Hour),
+				s.metrics.GetForPeriodByH(humidityKey, 24*time.Hour),
+			),
+		)
 	})
 
 	s.webSrv = &http.Server{
@@ -151,4 +161,34 @@ func (s *Server) runWebServer() error {
 
 func (s *Server) runHapServer(ctx context.Context) error {
 	return s.hkSrv.ListenAndServe(ctx)
+}
+
+func renderHourlyAverageTable(hourlyAverageT, hourlyAverageH map[string]float64) string {
+	var builder strings.Builder
+
+	builder.WriteString("+------+----------------+----------------+\n")
+	builder.WriteString("| Hour |        T       |        H       |\n")
+	builder.WriteString("+------+----------------+----------------+\n")
+
+	// HH: { tt.t hh.h }
+	// 01: { 23.5 60.0 }
+	allData := make(map[string][]float64)
+	for k, v := range hourlyAverageT {
+		allData[k] = []float64{v, hourlyAverageH[k]}
+	}
+	allKeys := make([]string, 0, len(allData))
+	for k := range allData {
+		allKeys = append(allKeys, k)
+	}
+
+	sort.Strings(allKeys)
+
+	for _, hour := range allKeys {
+		val := allData[hour]
+		builder.WriteString(fmt.Sprintf("| %-4s | %14.2f | %14.2f |\n", hour, val[0], val[1]))
+	}
+
+	builder.WriteString("+------+----------------+----------------+\n")
+
+	return builder.String()
 }
