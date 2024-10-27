@@ -140,13 +140,15 @@ func (s *Server) runWebServer() error {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
+		temp := s.metrics.GetForPeriodByH(temperatureKey, 24*time.Hour)
+		humi := s.metrics.GetForPeriodByH(humidityKey, 24*time.Hour)
+
 		_, _ = fmt.Fprintf(
 			w,
-			"Temp %v *C\nHumi %0.2f percent\n\n%s",
-			s.currT, s.currH, renderHourlyAverageTable(
-				s.metrics.GetForPeriodByH(temperatureKey, 24*time.Hour),
-				s.metrics.GetForPeriodByH(humidityKey, 24*time.Hour),
-			),
+			"Temp %v *C\nHumi %0.2f percent\n\n%s\n\n%s",
+			s.currT, s.currH,
+			renderHourlyAvgTable(temp, humi),
+			renderHourlyAvgDbgData(temp, humi),
 		)
 	})
 
@@ -163,7 +165,23 @@ func (s *Server) runHapServer(ctx context.Context) error {
 	return s.hkSrv.ListenAndServe(ctx)
 }
 
-func renderHourlyAverageTable(hourlyAverageT, hourlyAverageH map[string]float64) string {
+func renderHourlyAvgDbgData(hourlyAverageT, hourlyAverageH map[string]float64) string {
+	var builder strings.Builder
+
+	builder.WriteString("temp dbg:\n----\n")
+	for k, v := range hourlyAverageT {
+		builder.WriteString(fmt.Sprintf("[%v] %.2f\n", k, v))
+	}
+	builder.WriteString("\n+++\n")
+	builder.WriteString("humi dbg:\n----\n")
+	for k, v := range hourlyAverageH {
+		builder.WriteString(fmt.Sprintf("[%v] %.2f\n", k, v))
+	}
+
+	return builder.String()
+}
+
+func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH map[string]float64) string {
 	var builder strings.Builder
 
 	builder.WriteString("+------+----------------+----------------+\n")

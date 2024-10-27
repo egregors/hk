@@ -66,11 +66,11 @@ func New(opts ...Option) (m *InMem, commitDump DumpFn) {
 		err := m.Restore()
 		if err != nil {
 			log.Erro.Printf("not this time: %s", err.Error())
-		}
-
-		log.Info.Println("got from dump:")
-		for k, v := range m.GaugeTimeLine {
-			log.Info.Printf("-- %s: %d", k, len(v))
+		} else {
+			log.Info.Println("got from dump:")
+			for k, v := range m.GaugeTimeLine {
+				log.Info.Printf("-- %s: %d", k, len(v))
+			}
 		}
 	}
 

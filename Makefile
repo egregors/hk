@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 PROJECT_NAME := "hk"
 PKG := "github.com/egregors/$(PROJECT_NAME)"
 PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
