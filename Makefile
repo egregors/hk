@@ -16,6 +16,17 @@ build:  ## Build server and put bin into ~/go/bin/
 	@go build -o t-hk-srv cmd/prod/main.go
 	mv ./t-hk-srv ~/go/bin/
 
+.PHONY: pi-restart
+pi-restart:  ## Sync repo, build new bin, restart server
+	@gh repo sync
+	@go build -o t-hk-srv cmd/prod/main.go
+	@mv ./t-hk-srv ~/go/bin/
+	@echo "stop old srv..."
+	@sudo kill $(pgrep k-hk-srv)
+	@echo "start new one..."
+	@sudo nohup ~/go/bin/k-hk-srv &
+	@echo "done"
+
 .PHONY: lint
 lint:  ## Lint the files
 	@golangci-lint run
