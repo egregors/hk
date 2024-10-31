@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/egregors/hk/log"
@@ -30,19 +31,19 @@ func WithBackup() Option {
 	}
 }
 
-type GaugeM struct {
+type Value struct {
 	T time.Time
 	V float64
 }
 
-type gaugeMchMsg struct {
+type valueChanMsg struct {
 	key string
-	m   GaugeM
+	m   Value
 }
 
 type InMem struct {
-	GaugeTimeLine map[string][]GaugeM
-	gaugeTLch     chan gaugeMchMsg
+	GaugeTimeLine map[string][]Value
+	gaugeTLch     chan valueChanMsg
 
 	backup            bool
 	retentionDuration time.Duration
@@ -50,8 +51,8 @@ type InMem struct {
 
 func New(opts ...Option) (m *InMem, commitDump DumpFn) {
 	m = &InMem{
-		GaugeTimeLine: make(map[string][]GaugeM),
-		gaugeTLch:     make(chan gaugeMchMsg),
+		GaugeTimeLine: make(map[string][]Value),
+		gaugeTLch:     make(chan valueChanMsg),
 	}
 
 	for _, opt := range opts {
@@ -91,48 +92,52 @@ func New(opts ...Option) (m *InMem, commitDump DumpFn) {
 func (m *InMem) Gauge(key string, val float64) {
 	log.Debg.Printf("send: gauge %s: %v", key, val)
 	go func() {
-		m.gaugeTLch <- gaugeMchMsg{
+		m.gaugeTLch <- valueChanMsg{
 			key: key,
-			m:   GaugeM{T: time.Now(), V: val},
+			m:   Value{T: time.Now(), V: val},
 		}
 	}()
 }
 
-func (m *InMem) GetForPeriodByH(key string, dur time.Duration) map[string]float64 {
-	res := make(map[string]float64)
-	var xs []GaugeM
-
-	mByKey, ok := m.GaugeTimeLine[key]
+func (m *InMem) Avg(key string, dur time.Duration) []Value {
+	// FIXME: mu?
+	data, ok := m.GaugeTimeLine[key]
 	if !ok {
 		return nil
 	}
 
+	// get data for duration
 	start, end := time.Now().Add(-dur), time.Now()
-
-	for _, val := range mByKey {
-		if val.T.After(start) && val.T.Before(end) {
-			xs = append(xs, val)
+	var durData []Value
+	for _, val := range data {
+		t := val.T
+		if t.After(start) && t.Before(end) {
+			durData = append(durData, val)
 		}
 	}
 
-	hourlyData := make(map[string][]float64)
+	// calc hourly avg
+	sort.Slice(durData, func(i, j int) bool {
+		return durData[i].T.Before(durData[j].T)
+	})
 
-	for _, x := range xs {
-		hour := fmt.Sprintf("%02d", x.T.Hour()+1)
-		hourlyData[hour] = append(hourlyData[hour], x.V)
+	hAvg := make(map[time.Time][]float64)
+	for _, v := range durData {
+		t := v.T.Truncate(time.Hour)
+		hAvg[t] = append(hAvg[t], v.V)
 	}
 
-	for hour, values := range hourlyData {
-		var sum float64
-		for _, val := range values {
-			sum += val
+	avg := make([]Value, 0, len(hAvg))
+	for k, v := range hAvg {
+		sum := 0.0
+		for _, vv := range v {
+			sum += vv
 		}
-		if len(values) > 0 {
-			res[hour] = sum / float64(len(values))
-		}
+
+		avg = append(avg, Value{T: k, V: sum / (float64(len(v)))})
 	}
 
-	return res
+	return avg
 }
 
 func (m *InMem) collector() {
@@ -161,7 +166,7 @@ func (m *InMem) cleaner() {
 		cutoff := time.Now().Add(-m.retentionDuration)
 		var totalVs, totalNewVs int
 		for k, v := range m.GaugeTimeLine {
-			var newV []GaugeM
+			var newV []Value
 			for _, vv := range v {
 				if vv.T.After(cutoff) {
 					newV = append(newV, vv)

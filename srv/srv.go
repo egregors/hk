@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/egregors/hk/internal/metrics"
 	"net/http"
 	"sort"
 	"strings"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	pullPushSleep = 5
+	pullPushSleep = 1
 
 	temperatureKey = "current_temperature"
 	humidityKey    = "current_humidity"
@@ -41,7 +42,7 @@ type Store interface {
 
 type Metrics interface {
 	Gauge(key string, val float64)
-	GetForPeriodByH(key string, dur time.Duration) map[string]float64
+	Avg(key string, dur time.Duration) []metrics.Value
 }
 
 type Server struct {
@@ -140,15 +141,14 @@ func (s *Server) runWebServer() error {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		temp := s.metrics.GetForPeriodByH(temperatureKey, 24*time.Hour)
-		humi := s.metrics.GetForPeriodByH(humidityKey, 24*time.Hour)
+		temp := s.metrics.Avg(temperatureKey, 24*time.Hour)
+		humi := s.metrics.Avg(humidityKey, 24*time.Hour)
 
 		_, _ = fmt.Fprintf(
 			w,
-			"Temp %v *C\nHumi %0.2f percent\n\n%s\n\n%s",
+			"Temp %v *C\nHumi %0.2f percent\n\n%s\n\n",
 			s.currT, s.currH,
 			renderHourlyAvgTable(temp, humi),
-			renderHourlyAvgDbgData(temp, humi),
 		)
 	})
 
@@ -165,48 +165,50 @@ func (s *Server) runHapServer(ctx context.Context) error {
 	return s.hkSrv.ListenAndServe(ctx)
 }
 
-func renderHourlyAvgDbgData(hourlyAverageT, hourlyAverageH map[string]float64) string {
+func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string {
 	var builder strings.Builder
+	builder.WriteString("+-------------------------------+----------------+----------------+\n")
+	builder.WriteString("| Hour                          |        T       |        H       |\n")
+	builder.WriteString("+-------------------------------+----------------+----------------+\n")
 
-	builder.WriteString("temp dbg:\n----\n")
-	for k, v := range hourlyAverageT {
-		builder.WriteString(fmt.Sprintf("[%v] %.2f\n", k, v))
+	merge := make(map[string][]float64)
+
+	// collect temp
+	for _, v := range hourlyAverageT {
+		if _, ok := merge[v.T.String()]; !ok {
+			merge[v.T.String()] = make([]float64, 2)
+		}
+
+		merge[v.T.String()][0] = v.V
 	}
-	builder.WriteString("\n+++\n")
-	builder.WriteString("humi dbg:\n----\n")
-	for k, v := range hourlyAverageH {
-		builder.WriteString(fmt.Sprintf("[%v] %.2f\n", k, v))
+
+	// collect humi
+	for _, v := range hourlyAverageH {
+		if _, ok := merge[v.T.String()]; !ok {
+			merge[v.T.String()] = make([]float64, 2)
+		}
+
+		merge[v.T.String()][1] = v.V
 	}
 
-	return builder.String()
-}
-
-func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH map[string]float64) string {
-	var builder strings.Builder
-
-	builder.WriteString("+------+----------------+----------------+\n")
-	builder.WriteString("| Hour |        T       |        H       |\n")
-	builder.WriteString("+------+----------------+----------------+\n")
+	allKeys := make([]string, 0, len(merge))
+	for k := range merge {
+		allKeys = append(allKeys, k)
+	}
+	sort.Strings(allKeys)
 
 	// HH: { tt.t hh.h }
 	// 01: { 23.5 60.0 }
-	allData := make(map[string][]float64)
-	for k, v := range hourlyAverageT {
-		allData[k] = []float64{v, hourlyAverageH[k]}
-	}
-	allKeys := make([]string, 0, len(allData))
-	for k := range allData {
-		allKeys = append(allKeys, k)
-	}
-
-	sort.Strings(allKeys)
-
 	for _, hour := range allKeys {
-		val := allData[hour]
-		builder.WriteString(fmt.Sprintf("| %-4s | %14.2f | %14.2f |\n", hour, val[0], val[1]))
+		nowMark := ""
+		if hour == time.Now().Truncate(time.Hour).String() {
+			nowMark = " <--"
+		}
+		val := merge[hour]
+		builder.WriteString(fmt.Sprintf("| %-4s | %14.2f | %14.2f |%s\n", hour, val[0], val[1], nowMark))
 	}
 
-	builder.WriteString("+------+----------------+----------------+\n")
+	builder.WriteString("+-------------------------------+----------------+----------------+\n")
 
 	return builder.String()
 }
