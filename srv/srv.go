@@ -199,13 +199,24 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 
 	// HH: { tt.t hh.h }
 	// 01: { 23.5 60.0 }
+	up, down, same := "^", "v", "~"
+	var prevT = merge[allKeys[0]][0]
 	for _, hour := range allKeys {
 		nowMark := ""
+		progMark := same
 		if hour == time.Now().Truncate(time.Hour).String() {
 			nowMark = " <--"
 		}
 		val := merge[hour]
-		builder.WriteString(fmt.Sprintf("| %-4s | %14.2f | %14.2f |%s\n", hour, val[0], val[1], nowMark))
+		if val[0] > prevT {
+			progMark = up
+		} else if val[0] < prevT {
+			progMark = down
+		} else {
+			progMark = same
+		}
+		builder.WriteString(fmt.Sprintf("| %-4s | %s %12.2f | %14.2f |%s\n", hour, progMark, val[0], val[1], nowMark))
+		prevT = val[0]
 	}
 
 	builder.WriteString("+-------------------------------+----------------+----------------+\n")
