@@ -5,6 +5,8 @@ PKG := "github.com/egregors/$(PROJECT_NAME)"
 PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/ | grep -v _test.go)
 
+BIN := "t-hk-srv"
+
 ## Common tasks
 
 .PHONY: run
@@ -13,18 +15,19 @@ run:  ## Run dev version
 
 .PHONY: build
 build:  ## Build server and put bin into ~/go/bin/
-	@go build -o t-hk-srv cmd/prod/main.go
-	mv ./t-hk-srv ~/go/bin/
+	@go build -o $(BIN) cmd/prod/main.go
+	mv ./$(BIN) ~/go/bin/
 
 .PHONY: pi-restart
 pi-restart:  ## Sync repo, build new bin, restart server
 	@gh repo sync
-	@go build -o t-hk-srv cmd/prod/main.go
-	@mv ./t-hk-srv ~/go/bin/
+	@echo "rebuild..."
+	@go build -o $(BIN) cmd/prod/main.go
+	@mv ./$(BIN) ~/go/bin/
 	@echo "stop old srv..."
-	@sudo kill $(pgrep k-hk-srv)
+	@sudo kill $(pgrep $(BIN))
 	@echo "start new one..."
-	@sudo nohup ~/go/bin/k-hk-srv &
+	@sudo nohup ~/go/bin/$(BIN) &
 	@echo "done"
 
 .PHONY: lint
