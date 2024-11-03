@@ -167,9 +167,9 @@ func (s *Server) runHapServer(ctx context.Context) error {
 
 func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string {
 	var builder strings.Builder
-	builder.WriteString("+-------------------------------+----------------+----------------+\n")
-	builder.WriteString("| Hour                          |        T       |        H       |\n")
-	builder.WriteString("+-------------------------------+----------------+----------------+\n")
+	builder.WriteString("+----------+----------------+----------------+\n")
+	builder.WriteString("| Hour     |        T       |        H       |\n")
+	builder.WriteString("+----------+----------------+----------------+\n")
 
 	merge := make(map[string][]float64)
 
@@ -202,11 +202,7 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 	up, down, same := "^", "v", "~"
 	var prevT = merge[allKeys[0]][0]
 	for _, hour := range allKeys {
-		nowMark := ""
 		var progMark string
-		if hour == time.Now().Truncate(time.Hour).String() {
-			nowMark = " <--"
-		}
 		val := merge[hour]
 		switch {
 		case val[0] > prevT:
@@ -216,11 +212,12 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 		default:
 			progMark = same
 		}
-		builder.WriteString(fmt.Sprintf("| %-4s | %s %12.2f | %14.2f |%s\n", hour, progMark, val[0], val[1], nowMark))
+		hourMark := strings.Split(hour, " ")[1]
+		builder.WriteString(fmt.Sprintf("| %-4s | %s %12.2f | %14.2f |\n", hourMark, progMark, val[0], val[1]))
 		prevT = val[0]
 	}
 
-	builder.WriteString("+-------------------------------+----------------+----------------+\n")
+	builder.WriteString("+----------+----------------+----------------+\n")
 
 	return builder.String()
 }
