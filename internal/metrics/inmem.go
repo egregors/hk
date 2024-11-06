@@ -129,15 +129,21 @@ func (m *InMem) Avg(key string, dur time.Duration) []Value {
 
 	avg := make([]Value, 0, len(hAvg))
 	for k, v := range hAvg {
+		v = normalize(v)
 		sum := 0.0
 		for _, vv := range v {
 			sum += vv
 		}
-
 		avg = append(avg, Value{T: k, V: sum / (float64(len(v)))})
 	}
 
 	return avg
+}
+
+// normalize removes 2 the biggest and 2 smallest value to reduce outliers amount
+func normalize(xs []float64) []float64 {
+	sort.Float64s(xs)
+	return xs[2 : len(xs)-3]
 }
 
 func (m *InMem) collector() {

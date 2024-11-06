@@ -10,8 +10,8 @@ BIN := "t-hk-srv"
 ## Common tasks
 
 .PHONY: run
-run:  ## Run dev version
-	@go run cmd/dev/main.go
+run:  ## Run dev version with watch dog (required watchexec)
+	@watchexec -r -e go -- go run cmd/dev/main.go
 
 .PHONY: build
 build:  ## Build server and put bin into ~/go/bin/
