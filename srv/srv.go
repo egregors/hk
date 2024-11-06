@@ -201,7 +201,8 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 	// 01: { 23.5 60.0 }
 	up, down, same := "^", "v", "~"
 	var prevT = merge[allKeys[0]][0]
-	for _, hour := range allKeys {
+	for i := len(allKeys) - 1; i >= 0; i-- {
+		hour := allKeys[i]
 		var progMark string
 		val := merge[hour]
 		switch {
