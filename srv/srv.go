@@ -69,7 +69,7 @@ func New(store Store, climate ClimateSensor, hapSrv HapServer, metrics Metrics) 
 
 func (s *Server) Run(ctx context.Context) error {
 	go func() {
-		log.Info.Printf("start syncing sensor data with %d seconds sleep", pullPushSleep)
+		log.Info.Printf("start syncing sensor data with %s sleep", pullPushSleep)
 		for {
 			s.pullDataFromSensor()
 			s.pushDataToHK()
