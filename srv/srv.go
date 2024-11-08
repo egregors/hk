@@ -232,9 +232,14 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 }
 
 func renderHourlyAvgVisualisation(hourlyAverageT, hourlyAverageH []metrics.Value) string {
-	data := make([]float64, 0, len(hourlyAverageT))
+	tData := make([]float64, 0, len(hourlyAverageT))
 	for _, v := range hourlyAverageT {
-		data = append(data, v.V)
+		tData = append(tData, v.V)
 	}
-	return bp.SimplePlot(8, data)
+	hData := make([]float64, 0, len(hourlyAverageH))
+	for _, v := range hourlyAverageH {
+		hData = append(hData, v.V)
+	}
+
+	return "T: " + bp.SimplePlot(8, tData) + "\nH: " + bp.SimplePlot(8, hData)
 }
