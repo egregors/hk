@@ -15,6 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/egregors/hk/log"
+	"github.com/egregors/hk/utils/bp"
 )
 
 const (
@@ -146,8 +147,9 @@ func (s *Server) runWebServer() error {
 
 		_, _ = fmt.Fprintf(
 			w,
-			"Temp %0.2f °C\nHumi %0.2f %%\n\n%s\n\n",
+			"Temp %0.2f °C\nHumi %0.2f %%\n\n%s\n\n%s\n\n",
 			s.currT, s.currH,
+			renderHourlyAvgVisualisation(temp, humi),
 			renderHourlyAvgTable(temp, humi),
 		)
 	})
@@ -167,9 +169,9 @@ func (s *Server) runHapServer(ctx context.Context) error {
 
 func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string {
 	var builder strings.Builder
-	builder.WriteString("+-----------------+----------------+----------------+\n")
-	builder.WriteString("|  Hour           |       T        |        H       |\n")
-	builder.WriteString("+-----------------+----------------+----------------+\n")
+	builder.WriteString("+----------------+---------+--------+\n")
+	builder.WriteString("|    Datetime    |    T    |    H   |\n")
+	builder.WriteString("+----------------+---------+--------+\n")
 
 	merge := make(map[string][]float64)
 
@@ -220,11 +222,19 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 			split[0],
 			fmt.Sprint(strings.Split(split[1], ":")[0] + "h"),
 		}, " ")
-		builder.WriteString(fmt.Sprintf("| %-15s | %7s%7.2f | %14.2f |\n", timeMark, progMark, val[0], val[1]))
+		builder.WriteString(fmt.Sprintf("| %-14s | %1s%6.2f | %6.2f |\n", timeMark, progMark, val[0], val[1]))
 		prevT = val[0]
 	}
-
-	builder.WriteString("+-----------------+----------------+----------------+\n")
+	//                      | 2024-11-08 18h | ~ 34.93 |  54.58 |
+	builder.WriteString("+----------------+---------+--------+\n")
 
 	return builder.String()
+}
+
+func renderHourlyAvgVisualisation(hourlyAverageT, hourlyAverageH []metrics.Value) string {
+	data := make([]float64, 0, len(hourlyAverageT))
+	for _, v := range hourlyAverageT {
+		data = append(data, v.V)
+	}
+	return bp.SimplePlot(8, data)
 }
