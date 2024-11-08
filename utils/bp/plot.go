@@ -79,6 +79,12 @@ func SimplePlot(size int, data []float64) string {
 	}
 	log.Debg.Println("pos ps:", ps)
 
+	// normalize values (to show only dynamic range)
+	for _, p := range ps {
+		p[0], p[1] = max(0, p[0]-lo)*float64(size*4), max(0, p[1]-lo)*float64(size*4)
+	}
+	log.Debg.Println("nor ps:", ps)
+
 	// converts values to amount of dots
 	ps = dots(ps, dot)
 	log.Debg.Println("dot ps:", ps)
