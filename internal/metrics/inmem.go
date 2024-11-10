@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/egregors/hk/log"
@@ -47,12 +48,15 @@ type InMem struct {
 
 	backup            bool
 	retentionDuration time.Duration
+
+	mu sync.RWMutex
 }
 
 func New(opts ...Option) (m *InMem, commitDump DumpFn) {
 	m = &InMem{
 		GaugeTimeLine: make(map[string][]Value),
 		gaugeTLch:     make(chan valueChanMsg),
+		mu:            sync.RWMutex{},
 	}
 
 	for _, opt := range opts {
@@ -100,7 +104,9 @@ func (m *InMem) Gauge(key string, val float64) {
 }
 
 func (m *InMem) Avg(key string, dur time.Duration) []Value {
-	// FIXME: mu?
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	data, ok := m.GaugeTimeLine[key]
 	if !ok {
 		return nil
@@ -136,6 +142,11 @@ func (m *InMem) Avg(key string, dur time.Duration) []Value {
 		}
 		avg = append(avg, Value{T: k, V: sum / (float64(len(v)))})
 	}
+
+	// sort by time from oldest to newest
+	sort.Slice(avg, func(i, j int) bool {
+		return avg[i].T.Before(avg[j].T)
+	})
 
 	return avg
 }

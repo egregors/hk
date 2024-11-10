@@ -142,8 +142,8 @@ func (s *Server) runWebServer() error {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		temp := s.metrics.Avg(temperatureKey, 24*time.Hour)
-		humi := s.metrics.Avg(humidityKey, 24*time.Hour)
+		temp := s.metrics.Avg(temperatureKey, 24*time.Hour*3)
+		humi := s.metrics.Avg(humidityKey, 24*time.Hour*3)
 
 		_, _ = fmt.Fprintf(
 			w,
@@ -241,5 +241,5 @@ func renderHourlyAvgVisualisation(hourlyAverageT, hourlyAverageH []metrics.Value
 		hData = append(hData, v.V)
 	}
 
-	return "T: " + bp.SimplePlot(8, tData) + "\nH: " + bp.SimplePlot(8, hData)
+	return "T:\n" + bp.SimplePlot(8, tData) + "\nH:\n" + bp.SimplePlot(8, hData)
 }
