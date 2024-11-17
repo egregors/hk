@@ -143,7 +143,7 @@ func (m *InMem) Avg(key string, dur time.Duration) []Value {
 		avg = append(avg, Value{T: k, V: sum / (float64(len(v)))})
 	}
 
-	// sort by time from oldest to newest
+	// sort by time from newest to oldest
 	sort.Slice(avg, func(i, j int) bool {
 		return avg[i].T.Before(avg[j].T)
 	})

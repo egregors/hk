@@ -197,24 +197,23 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 	for k := range merge {
 		allKeys = append(allKeys, k)
 	}
-	sort.Strings(allKeys)
+	if len(allKeys) == 0 {
+		// show "nothing to show"
+		builder.WriteString("|      -         |    -    |    -   |\n")
+
+		return builder.String()
+	}
+
+	sort.Slice(allKeys, func(i, j int) bool {
+		return allKeys[i] > allKeys[j]
+	})
 
 	// HH: { tt.t hh.h }
 	// 01: { 23.5 60.0 }
-	up, down, same := "^", "v", "~"
-	var prevT = merge[allKeys[0]][0]
-	for i := len(allKeys) - 1; i >= 0; i-- {
+	for i := 0; i < len(allKeys); i++ {
 		hour := allKeys[i]
-		var progMark string
+
 		val := merge[hour]
-		switch {
-		case val[0] > prevT:
-			progMark = up
-		case val[0] < prevT:
-			progMark = down
-		default:
-			progMark = same
-		}
 
 		// hour: 2024-11-06 15:00:00 +0100 CET
 		split := strings.Split(hour, " ")
@@ -222,8 +221,8 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 			split[0],
 			fmt.Sprint(strings.Split(split[1], ":")[0] + "h"),
 		}, " ")
-		builder.WriteString(fmt.Sprintf("| %-14s | %1s%6.2f | %6.2f |\n", timeMark, progMark, val[0], val[1]))
-		prevT = val[0]
+		// TODO: put tempProgressionMark back, instead of ""
+		builder.WriteString(fmt.Sprintf("| %-14s | %1s%6.2f | %6.2f |\n", timeMark, "", val[0], val[1]))
 	}
 	//                      | 2024-11-08 18h | ~ 34.93 |  54.58 |
 	builder.WriteString("+----------------+---------+--------+\n")
@@ -241,5 +240,5 @@ func renderHourlyAvgVisualisation(hourlyAverageT, hourlyAverageH []metrics.Value
 		hData = append(hData, v.V)
 	}
 
-	return "T:\n" + bp.SimplePlot(8, tData) + "\nH:\n" + bp.SimplePlot(8, hData)
+	return bp.SimplePlot(6, tData) + "\n\n" + bp.SimplePlot(6, hData)
 }

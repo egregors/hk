@@ -9,6 +9,7 @@
 package bp
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
@@ -60,6 +61,9 @@ var bps = [5][]rune{
 }
 
 func SimplePlot(size int, data []float64) string {
+	if len(data) == 0 {
+		return ""
+	}
 	lo, hi := minMax(data)
 	log.Debg.Printf("hi: %.2f lo: %.2f\n", hi, lo)
 	maxRange := math.Abs(lo) + math.Abs(hi)
@@ -89,7 +93,10 @@ func SimplePlot(size int, data []float64) string {
 	ps = dots(ps, dot)
 	log.Debg.Println("dot ps:", ps)
 
-	return render(size, ps)
+	// add value bounds
+	vis := fmt.Sprintf("%.2f\n%s%.2f", hi, render(size, ps), lo)
+
+	return vis
 }
 
 func render(size int, ps [][]float64) string {
