@@ -21,8 +21,11 @@ const (
 	metricsRetention = 3600 * time.Hour
 )
 
+var revision string = "HEAD"
+
 func main() {
 	setupLogger()
+	log.Info.Printf("🇭🇰 revision: %s", revision)
 
 	db := hap.NewFsStore("./db")
 	m, dumpFn := makeMetrics()

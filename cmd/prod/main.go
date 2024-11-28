@@ -23,8 +23,11 @@ const (
 	hapPIN           = "11112222" // TODO: use secure pin (not this one)
 )
 
+var revision string = "HEAD"
+
 func main() {
 	setupLogger()
+	log.Info.Printf("🇭🇰 revision: %s", revision)
 
 	db := hap.NewFsStore("./db")
 	m, dumpFn := makeMetrics()

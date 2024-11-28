@@ -4,6 +4,8 @@ PROJECT_NAME := "hk"
 PKG := "github.com/egregors/$(PROJECT_NAME)"
 PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/ | grep -v _test.go)
+CURRENT_REVISION := $(shell git rev-parse --short HEAD)
+BUILD_LDFLAGS := "-s -w -X main.revision=$(CURRENT_REVISION)"
 
 BIN := "t-hk-srv"
 
@@ -15,7 +17,7 @@ run:  ## Run dev version with watch dog (required watchexec)
 
 .PHONY: build
 build:  ## Build server and put bin into ~/go/bin/
-	@go build -o $(BIN) cmd/prod/main.go
+	@go build -ldflags=$(BUILD_LDFLAGS)  -o $(BIN) cmd/prod/main.go
 	mv ./$(BIN) ~/go/bin/
 
 .PHONY: lint
