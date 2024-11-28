@@ -153,6 +153,9 @@ func (m *InMem) Avg(key string, dur time.Duration) []Value {
 
 // normalize removes 2 the biggest and 2 smallest value to reduce outliers amount
 func normalize(xs []float64) []float64 {
+	if len(xs) < 5 {
+		return xs
+	}
 	sort.Float64s(xs)
 	return xs[2 : len(xs)-3]
 }
