@@ -100,8 +100,8 @@ egregors@pi:~ $ i2cdetect -y 1
 
 ## References
 
-* github.com/brutella/hap – HomeKit Accessory Protocol implementation in Go
-* github.com/d2r2/go-bsbmp – BME280 sensor driver in Go
+* https://github.com/brutella/hap – HomeKit Accessory Protocol implementation in Go
+* https://github.com/d2r2/go-bsbmp – BME280 sensor driver in Go
 
 ## Contributing
 
