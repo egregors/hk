@@ -4,7 +4,7 @@ Integration temperature and humidity sensor (bosch BME280) with Raspberry Pi and
 
 ## tl;dr
 
-In general, this project is just 3 parts combined together:
+In general, this project is just 3 parts combined:
 
 * Raspberry Pi + BME280 sensor integration – to get temperature and humidity data
 * Simple web server – to expose the data to local network
@@ -14,13 +14,17 @@ In general, this project is just 3 parts combined together:
 
 ## Quick start
 
-// TODO: how to run local
+Actual sensor code should be compiled on Raspberry Pi device. You can use any other device to compile the code, but you
+should copy the binary to Raspberry Pi device to run it.
+In purpose to make development process less painful there is a `ClimateSensor` interface.
 
 ```shell
-sudo apt-get update
-sudo apt-get upgrade
+
 ```
-How to enable I2C bus on RPi device: If you employ RaspberryPI, use raspi-config utility to activate i2c-bus on the OS level. Go to "Interfaceing Options" menu, to active I2C bus. Probably you will need to reboot to load i2c kernel module. Finally you should have device like /dev/i2c-1 present in the system.
+
+How to enable I2C bus on RPi device: If you employ RaspberryPI, use raspi-config utility to activate i2c-bus on the OS
+level. Go to "Interfaceing Options" menu, to active I2C bus. Probably you will need to reboot to load i2c kernel module.
+Finally you should have device like /dev/i2c-1 present in the system.
 
 ```shell
 egregors@pi:~ $ i2cdetect -y 1
@@ -34,14 +38,3 @@ egregors@pi:~ $ i2cdetect -y 1
 60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 70: -- -- -- -- -- -- -- 77
 ```
-
-```shell
-sudo apt install snapd
-sudo snap install go --classic
-go version
-go1.23.2 linux/arm64
-```
-
-
-// TOOD: how to build and run prod
-https://github.com/d2r2/go-bsbmp

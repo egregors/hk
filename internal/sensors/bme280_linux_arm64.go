@@ -33,7 +33,7 @@ func NewBME280() (*BME280, error) {
 }
 
 func (b *BME280) CurrentTemperature() (float64, error) {
-	t, err := b.sensor.ReadTemperatureC(bsbmp.ACCURACY_HIGH)
+	t, err := b.sensor.ReadTemperatureC(bsbmp.ACCURACY_ULTRA_HIGH)
 	if err != nil {
 		return 0, err
 	}
@@ -42,7 +42,7 @@ func (b *BME280) CurrentTemperature() (float64, error) {
 }
 
 func (b *BME280) CurrentHumidity() (float64, error) {
-	_, h, err := b.sensor.ReadHumidityRH(bsbmp.ACCURACY_HIGH)
+	_, h, err := b.sensor.ReadHumidityRH(bsbmp.ACCURACY_ULTRA_HIGH)
 	if err != nil {
 		return 0, err
 	}

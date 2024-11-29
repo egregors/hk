@@ -111,20 +111,21 @@ func (s *Server) pullDataFromSensor() {
 		t, h float64
 	)
 
-	g := new(errgroup.Group)
-	g.Go(func() error {
-		t, err = s.climate.CurrentTemperature()
-		return err
-	})
-	g.Go(func() error {
-		h, err = s.climate.CurrentHumidity()
-		return err
-	})
-	if err = g.Wait(); err != nil {
-		log.Erro.Printf("can't get sensor data: %s", err.Error())
-		s.sensorStatus = OFFLINE
-		s.sensorErr = err
+	defer func() {
+		if err != nil {
+			log.Erro.Printf("can't get sensor data: %s", err.Error())
+			s.sensorStatus = OFFLINE
+			s.sensorErr = err
+		}
+	}()
 
+	t, err = s.climate.CurrentTemperature()
+	if err != nil {
+		return
+	}
+	time.Sleep(3 * time.Second)
+	h, err = s.climate.CurrentHumidity()
+	if err != nil {
 		return
 	}
 
