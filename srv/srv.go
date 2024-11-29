@@ -23,6 +23,9 @@ const (
 
 	temperatureKey = "current_temperature"
 	humidityKey    = "current_humidity"
+
+	ONLINE  = "online"
+	OFFLINE = "offline"
 )
 
 type HapServer interface {
@@ -53,18 +56,23 @@ type Server struct {
 	store   Store
 	metrics Metrics
 
+	sensorStatus string
+	sensorErr    error
+
 	mu           *sync.RWMutex
 	currT, currH float64
 }
 
 func New(store Store, climate ClimateSensor, hapSrv HapServer, metrics Metrics) *Server {
 	return &Server{
-		webSrv:  nil,
-		hkSrv:   hapSrv,
-		climate: climate,
-		store:   store,
-		metrics: metrics,
-		mu:      &sync.RWMutex{},
+		webSrv:       nil,
+		hkSrv:        hapSrv,
+		climate:      climate,
+		store:        store,
+		metrics:      metrics,
+		sensorStatus: ONLINE,
+		sensorErr:    nil,
+		mu:           &sync.RWMutex{},
 	}
 }
 
@@ -114,9 +122,14 @@ func (s *Server) pullDataFromSensor() {
 	})
 	if err = g.Wait(); err != nil {
 		log.Erro.Printf("can't get sensor data: %s", err.Error())
+		s.sensorStatus = OFFLINE
+		s.sensorErr = err
 
 		return
 	}
+
+	s.sensorStatus = ONLINE
+	s.sensorErr = nil
 
 	s.currT, s.currH = t, h
 
@@ -147,7 +160,8 @@ func (s *Server) runWebServer() error {
 
 		_, _ = fmt.Fprintf(
 			w,
-			"Temp %0.2f °C\nHumi %0.2f %%\n\n%s\n\n%s\n\n",
+			"%s\nTemp %0.2f °C\nHumi %0.2f %%\n\n%s\n\n%s\n\n",
+			s.title(),
 			s.currT, s.currH,
 			renderHourlyAvgVisualisation(temp, humi),
 			renderHourlyAvgTable(temp, humi),
@@ -165,6 +179,18 @@ func (s *Server) runWebServer() error {
 
 func (s *Server) runHapServer(ctx context.Context) error {
 	return s.hkSrv.ListenAndServe(ctx)
+}
+
+func (s *Server) title() string {
+	var status, err string
+	if s.sensorStatus == ONLINE {
+		status = "🟢 Online"
+	} else {
+		status = "🔴 Offline"
+		err = "Error: " + s.sensorErr.Error() + "\n"
+	}
+
+	return fmt.Sprintf("Sensor: %s\n%s", status, err)
 }
 
 func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string {
