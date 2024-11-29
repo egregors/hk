@@ -22,7 +22,7 @@ In general, this project is just 3 parts combined:
 
 ### Screenshots:
 <p align="center">
-     <img width="80%" alt="Screenshot 2024-11-29 at 18 29 12" src="https://github.com/user-attachments/assets/9ef91117-bc91-4bdb-b394-8addfc04f37a">
+     <img width="80%" alt="Screenshot 2024-11-29 at 18 29 12" src="https://github.com/user-attachments/assets/04885fc5-93d6-4e4e-8144-925465979f4d">
 </p>
 <p align="center">
      <img width="30%" alt="Screenshot 2024-11-29 at 18 29 12" src="https://github.com/user-attachments/assets/5cb203cb-40ca-4f28-b27c-affc23ae93a1">
