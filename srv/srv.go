@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	pullPushSleep = 5 * time.Minute
+	pullPushSleep = 30 * time.Second
 
 	temperatureKey = "current_temperature"
 	humidityKey    = "current_humidity"
