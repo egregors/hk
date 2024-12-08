@@ -23,7 +23,7 @@ const (
 	hapPIN           = "11112222" // TODO: use secure pin (not this one)
 )
 
-var revision string = "HEAD"
+var revision = "HEAD"
 
 func main() {
 	setupLogger()
@@ -67,7 +67,11 @@ func graceful(cancel context.CancelFunc, dumpFn metrics.DumpFn) {
 }
 
 func makeMetrics() (m srv.Metrics, dump metrics.DumpFn) {
-	return metrics.New(metrics.WithRetention(metricsRetention), metrics.WithBackup())
+	return metrics.New(
+		metrics.WithRetention(metricsRetention),
+		metrics.WithBackup(),
+		metrics.WithAutosave(60*time.Minute),
+	)
 }
 
 func makeClimate() srv.ClimateSensor {

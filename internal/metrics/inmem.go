@@ -32,6 +32,12 @@ func WithBackup() Option {
 	}
 }
 
+func WithAutosave(dur time.Duration) Option {
+	return func(m *InMem) {
+		m.autosaveDuration = dur
+	}
+}
+
 type Value struct {
 	T time.Time
 	V float64
@@ -48,6 +54,7 @@ type InMem struct {
 
 	backup            bool
 	retentionDuration time.Duration
+	autosaveDuration  time.Duration
 
 	mu sync.RWMutex
 }
@@ -65,6 +72,7 @@ func New(opts ...Option) (m *InMem, commitDump DumpFn) {
 
 	go m.collector()
 	go m.cleaner()
+	go m.autosaver()
 
 	if m.backup {
 		log.Info.Println("try to restore from dump")
@@ -160,11 +168,28 @@ func normalize(xs []float64) []float64 {
 	return xs[2 : len(xs)-3]
 }
 
+func (m *InMem) autosaver() {
+	if m.autosaveDuration == 0 {
+		return
+	}
+
+	for {
+		<-time.After(m.autosaveDuration)
+		log.Debg.Println("autosave...")
+		err := m.Dump()
+		if err != nil {
+			log.Erro.Printf("can't make a dump during autosave: %s", err.Error())
+		}
+	}
+}
+
 func (m *InMem) collector() {
 	log.Debg.Println("collector started")
 	for msg := range m.gaugeTLch {
+		m.mu.Lock()
 		log.Debg.Printf("got: gauge %s: %v at %v", msg.key, msg.m.V, msg.m.T)
 		m.GaugeTimeLine[msg.key] = append(m.GaugeTimeLine[msg.key], msg.m)
+		m.mu.Unlock()
 	}
 }
 
@@ -177,34 +202,41 @@ func (m *InMem) cleaner() {
 
 	for {
 		<-time.After(cleanerWorkerSleep)
-		log.Debg.Printf("cleanup. retention period: %v\n", m.retentionDuration)
-		log.Debg.Println("current size:")
-		for k, v := range m.GaugeTimeLine {
-			log.Debg.Printf("-- %s: %d", k, len(v))
-		}
-
-		cutoff := time.Now().Add(-m.retentionDuration)
-		var totalVs, totalNewVs int
-		for k, v := range m.GaugeTimeLine {
-			var newV []Value
-			for _, vv := range v {
-				if vv.T.After(cutoff) {
-					newV = append(newV, vv)
-				}
+		m.mu.Lock()
+		{
+			log.Debg.Printf("cleanup. retention period: %v\n", m.retentionDuration)
+			log.Debg.Println("current size:")
+			for k, v := range m.GaugeTimeLine {
+				log.Debg.Printf("-- %s: %d", k, len(v))
 			}
-			totalVs += len(v)
-			totalNewVs += len(newV)
-			m.GaugeTimeLine[k] = newV
-		}
 
-		diff := totalVs - totalNewVs
-		if diff != 0 {
-			log.Debg.Printf("cleaner removed %d gauges by retention policy\n", diff)
+			cutoff := time.Now().Add(-m.retentionDuration)
+			var totalVs, totalNewVs int
+			for k, v := range m.GaugeTimeLine {
+				var newV []Value
+				for _, vv := range v {
+					if vv.T.After(cutoff) {
+						newV = append(newV, vv)
+					}
+				}
+				totalVs += len(v)
+				totalNewVs += len(newV)
+				m.GaugeTimeLine[k] = newV
+			}
+
+			diff := totalVs - totalNewVs
+			if diff != 0 {
+				log.Debg.Printf("cleaner removed %d gauges by retention policy\n", diff)
+			}
 		}
+		m.mu.Unlock()
 	}
 }
 
 func (m *InMem) Dump() error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	buf := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buf)
 
@@ -221,6 +253,9 @@ func (m *InMem) Dump() error {
 }
 
 func (m *InMem) Restore() error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	f, err := os.ReadFile("hk-dump.gob")
 	if err != nil {
 		return fmt.Errorf("can't read dump: %w", err)
