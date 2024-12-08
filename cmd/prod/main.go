@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	metricsRetention = 7 * 24 * time.Hour
+	metricsRetention = 30 * 24 * time.Hour
 	hapPIN           = "11112222" // TODO: use secure pin (not this one)
 )
 

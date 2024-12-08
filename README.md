@@ -1,4 +1,4 @@
-# hk
+# 🇭🇰 hk – HomeKit BME280 sensor integration + web iface
 
 Integration temperature and humidity sensor (bosch BME280) with Raspberry Pi and Apple HomeKit
 
@@ -21,8 +21,13 @@ In general, this project is just 3 parts combined:
 * Custom PIN for HomeKit
 
 ### Screenshots:
-
-// TODO: add 3 screenshots here
+<p align="center">
+     <img width="80%" alt="Screenshot 2024-11-29 at 18 29 12" src="https://github.com/user-attachments/assets/04885fc5-93d6-4e4e-8144-925465979f4d">
+</p>
+<div align="center">
+     <img width="30%" alt="Screenshot 2024-11-29 at 18 29 12" src="https://github.com/user-attachments/assets/5cb203cb-40ca-4f28-b27c-affc23ae93a1">
+     <img width="43%" alt="Screenshot 2024-11-29 at 18 29 12" src="https://github.com/user-attachments/assets/fd22263f-a434-4c1d-9fac-40a4aad7972d">
+</div>
 
 ## Quick start
 
@@ -95,8 +100,8 @@ egregors@pi:~ $ i2cdetect -y 1
 
 ## References
 
-* github.com/brutella/hap – HomeKit Accessory Protocol implementation in Go
-* github.com/d2r2/go-bsbmp – BME280 sensor driver in Go
+* https://github.com/brutella/hap – HomeKit Accessory Protocol implementation in Go
+* https://github.com/d2r2/go-bsbmp – BME280 sensor driver in Go
 
 ## Contributing
 
