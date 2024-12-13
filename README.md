@@ -62,7 +62,7 @@ prev log:
 [INFO] 2024/11/29 16:49:39 main.go:54: ctx cancel
 [INFO] 2024/11/29 16:49:39 main.go:57: try make a dump to restore it next time...
 [INFO] 2024/11/29 16:49:39 main.go:61: done
-[INFO] 2024/11/29 16:49:39 main.go:64: buy
+[INFO] 2024/11/29 16:49:39 main.go:64: bye
 ---
 kill prev srv
 Failed to kill t-hk-srv

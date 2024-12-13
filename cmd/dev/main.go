@@ -59,7 +59,7 @@ func graceful(cancel context.CancelFunc, dumpFn metrics.DumpFn) {
 		log.Info.Println("done")
 	}
 
-	log.Info.Println("buy")
+	log.Info.Println("bye")
 
 	os.Exit(0)
 }
