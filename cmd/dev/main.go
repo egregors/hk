@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/egregors/hk/internal/light"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,7 +30,7 @@ func main() {
 
 	db := hap.NewFsStore("./db")
 	m, dumpFn := makeMetrics()
-	server := srv.New(db, makeClimate(), makeFakeHkSrv(), m)
+	server := srv.New(db, makeClimate(), makeLight(), makeFakeHkSrv(), m)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go graceful(cancel, dumpFn)
@@ -76,6 +77,18 @@ func makeClimate() srv.ClimateSensor {
 	}
 
 	return bme280
+}
+
+func makeLight() srv.LightCtrl {
+	// TODO: make two different external devices: required and options,
+	//  in case of fail of optional device setup just skip it.
+	garland, err := light.NewUsbGarland()
+	if err != nil {
+		log.Erro.Printf("can't create USB garland: %s", err.Error())
+		os.Exit(1)
+	}
+
+	return garland
 }
 
 func makeFakeHkSrv() *homekit.NoopHap {

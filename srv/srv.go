@@ -31,6 +31,7 @@ const (
 type HapServer interface {
 	SetCurrentTemperature(t float64)
 	SetCurrentHumidity(h float64)
+	LightEventsCh() chan bool
 
 	ListenAndServe(ctx context.Context) error
 }
@@ -38,6 +39,11 @@ type HapServer interface {
 type ClimateSensor interface {
 	CurrentTemperature() (float64, error)
 	CurrentHumidity() (float64, error)
+}
+
+type LightCtrl interface {
+	On() error
+	Off() error
 }
 
 type Store interface {
@@ -53,6 +59,7 @@ type Server struct {
 	webSrv  *http.Server
 	hkSrv   HapServer
 	climate ClimateSensor
+	light   LightCtrl
 	store   Store
 	metrics Metrics
 
@@ -63,11 +70,18 @@ type Server struct {
 	currT, currH float64
 }
 
-func New(store Store, climate ClimateSensor, hapSrv HapServer, metrics Metrics) *Server {
+func New(
+	store Store,
+	climate ClimateSensor,
+	light LightCtrl,
+	hapSrv HapServer,
+	metrics Metrics,
+) *Server {
 	return &Server{
 		webSrv:       nil,
 		hkSrv:        hapSrv,
 		climate:      climate,
+		light:        light,
 		store:        store,
 		metrics:      metrics,
 		sensorStatus: ONLINE,
@@ -97,6 +111,13 @@ func (s *Server) Run(ctx context.Context) error {
 	g.Go(func() error {
 		log.Info.Println("start HAP server")
 		return s.runHapServer(ctx)
+	})
+	// go listen hap events
+	g.Go(func() error {
+		log.Info.Println("start listen HAP events")
+		s.listenHapEvents()
+
+		return nil
 	})
 
 	return g.Wait()
@@ -144,6 +165,24 @@ func (s *Server) pushDataToHK() {
 
 	s.hkSrv.SetCurrentTemperature(s.currT)
 	s.hkSrv.SetCurrentHumidity(s.currH)
+}
+
+func (s *Server) listenHapEvents() {
+	lightCh := s.hkSrv.LightEventsCh()
+
+	for v := range lightCh {
+		if v {
+			err := s.light.On()
+			if err != nil {
+				log.Erro.Printf("can't turn the light on: %s", err.Error())
+			}
+		} else {
+			err := s.light.Off()
+			if err != nil {
+				log.Erro.Printf("can't turn the light off: %s", err.Error())
+			}
+		}
+	}
 }
 
 func (s *Server) runWebServer() error {
