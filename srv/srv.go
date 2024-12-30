@@ -31,7 +31,7 @@ const (
 type HapServer interface {
 	SetCurrentTemperature(t float64)
 	SetCurrentHumidity(h float64)
-	LightEventsCh() chan bool
+	USB2PowerChan() chan bool
 
 	ListenAndServe(ctx context.Context) error
 }
@@ -66,6 +66,8 @@ type Server struct {
 	sensorStatus string
 	sensorErr    error
 
+	usb2power bool
+
 	mu           *sync.RWMutex
 	currT, currH float64
 }
@@ -86,6 +88,7 @@ func New(
 		metrics:      metrics,
 		sensorStatus: ONLINE,
 		sensorErr:    nil,
+		usb2power:    true, // usb power is on by default
 		mu:           &sync.RWMutex{},
 	}
 }
@@ -168,10 +171,10 @@ func (s *Server) pushDataToHK() {
 }
 
 func (s *Server) listenHapEvents() {
-	lightCh := s.hkSrv.LightEventsCh()
+	powerCh := s.hkSrv.USB2PowerChan()
 
-	for v := range lightCh {
-		log.Debg.Printf("got %v from lightCh", v)
+	for v := range powerCh {
+		log.Debg.Printf("got %v from powerCh", v)
 
 		if v {
 			err := s.light.On()

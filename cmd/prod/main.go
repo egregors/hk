@@ -122,8 +122,8 @@ func makeHkSrv(db hap.Store) *homekit.HapSrv {
 			Model:        "BME280",
 			Firmware:     "-",
 		}),
-		Light: accessory.NewLightbulb(accessory.Info{
-			Name:         "Garland",
+		USB2Power: accessory.NewSwitch(accessory.Info{
+			Name:         "RPi5 usb2.0 power",
 			SerialNumber: "-",
 			Manufacturer: "noname",
 			Model:        "-",
