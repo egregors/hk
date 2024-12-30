@@ -84,5 +84,7 @@ func (s *HapSrv) SetCurrentHumidity(h float64) {
 }
 
 func (s *HapSrv) ListenAndServe(ctx context.Context) error {
+	s.light.Lightbulb.On.SetValue(true)
+
 	return s.srv.ListenAndServe(ctx)
 }
