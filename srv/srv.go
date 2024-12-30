@@ -41,7 +41,7 @@ type ClimateSensor interface {
 	CurrentHumidity() (float64, error)
 }
 
-type LightCtrl interface {
+type USB2PowerCtrl interface {
 	On() error
 	Off() error
 }
@@ -56,17 +56,15 @@ type Metrics interface {
 }
 
 type Server struct {
-	webSrv  *http.Server
-	hkSrv   HapServer
-	climate ClimateSensor
-	light   LightCtrl
-	store   Store
-	metrics Metrics
+	webSrv    *http.Server
+	hkSrv     HapServer
+	climate   ClimateSensor
+	usb2power USB2PowerCtrl
+	store     Store
+	metrics   Metrics
 
 	sensorStatus string
 	sensorErr    error
-
-	usb2power bool
 
 	mu           *sync.RWMutex
 	currT, currH float64
@@ -75,7 +73,7 @@ type Server struct {
 func New(
 	store Store,
 	climate ClimateSensor,
-	light LightCtrl,
+	usb2power USB2PowerCtrl,
 	hapSrv HapServer,
 	metrics Metrics,
 ) *Server {
@@ -83,13 +81,13 @@ func New(
 		webSrv:       nil,
 		hkSrv:        hapSrv,
 		climate:      climate,
-		light:        light,
+		usb2power:    usb2power,
 		store:        store,
 		metrics:      metrics,
 		sensorStatus: ONLINE,
 		sensorErr:    nil,
-		usb2power:    true, // usb power is on by default
-		mu:           &sync.RWMutex{},
+		//usb2power:    true, // usb power is on by default
+		mu: &sync.RWMutex{},
 	}
 }
 
@@ -176,13 +174,13 @@ func (s *Server) listenHapEvents() {
 	for v := range powerCh {
 		log.Debg.Printf("got %v from powerCh", v)
 
-		if v {
-			err := s.light.On()
+		if !v {
+			err := s.usb2power.On()
 			if err != nil {
 				log.Erro.Printf("can't turn the light on: %s", err.Error())
 			}
 		} else {
-			err := s.light.Off()
+			err := s.usb2power.Off()
 			if err != nil {
 				log.Erro.Printf("can't turn the light off: %s", err.Error())
 			}

@@ -79,7 +79,7 @@ func makeClimate() srv.ClimateSensor {
 	return bme280
 }
 
-func makeLight() srv.LightCtrl {
+func makeLight() srv.USB2PowerCtrl {
 	// TODO: make two different external devices: required and options,
 	//  in case of fail of optional device setup just skip it.
 	garland, err := light.NewUsbGarland()
