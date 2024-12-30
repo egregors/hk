@@ -52,10 +52,6 @@ func NewHapSrv(hapSrvOpts *HapSrvOpts) (*HapSrv, error) {
 		s.Pin = hapSrvOpts.Pin
 	}
 
-	// because USB power is on by default (after reboot for example)
-	// I set light on by default
-	hapSrvOpts.Light.Lightbulb.On.SetValue(true)
-
 	return &HapSrv{
 		srv:         s,
 		thermometer: hapSrvOpts.Thermometer,
@@ -84,7 +80,5 @@ func (s *HapSrv) SetCurrentHumidity(h float64) {
 }
 
 func (s *HapSrv) ListenAndServe(ctx context.Context) error {
-	s.light.Lightbulb.On.SetValue(true)
-
 	return s.srv.ListenAndServe(ctx)
 }
