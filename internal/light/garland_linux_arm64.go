@@ -8,28 +8,26 @@ import (
 	"github.com/egregors/hk/utils/cli"
 )
 
-type UsbGarland struct {
-	cmdOn, cmdOff *exec.Cmd
-}
+type UsbGarland struct{}
 
-func NewUsbGarland() (usbGarland *UsbGarland, err error) {
-	err = cli.CheckCommandExists("uhubctl")
+func NewUsbGarland() (*UsbGarland, error) {
+	// sudo uhubctl -l 1 -a on
+	err := cli.CheckCommandExists("uhubctl")
 	if err != nil {
 		return nil, err
 	}
 
-	// sudo uhubctl -l 1 -a on
-	usbGarland = new(UsbGarland)
-	usbGarland.cmdOn = exec.Command("sudo", "uhubctl", "-l", "1", "-a", "on")
-	usbGarland.cmdOff = exec.Command("sudo", "uhubctl", "-l", "1", "-a", "off")
-
-	return
+	return &UsbGarland{}
 }
 
 func (u *UsbGarland) On() error {
-	return u.cmdOn.Run()
+	cmdOn = exec.Command("sudo", "uhubctl", "-l", "1", "-a", "on")
+
+	return cmdOn.Run()
 }
 
 func (u *UsbGarland) Off() error {
-	return u.cmdOff.Run()
+	cmdOff = exec.Command("sudo", "uhubctl", "-l", "1", "-a", "off")
+
+	return cmdOff.Run()
 }
