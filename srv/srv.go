@@ -86,8 +86,7 @@ func New(
 		metrics:      metrics,
 		sensorStatus: ONLINE,
 		sensorErr:    nil,
-		//usb2power:    true, // usb power is on by default
-		mu: &sync.RWMutex{},
+		mu:           &sync.RWMutex{},
 	}
 }
 

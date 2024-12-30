@@ -6,7 +6,7 @@ import (
 
 type NoopHap struct{}
 
-func (n NoopHap) LightEventsCh() chan bool {
+func (n NoopHap) USB2PowerChan() chan bool {
 	return nil
 }
 
