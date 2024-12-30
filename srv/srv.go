@@ -171,6 +171,8 @@ func (s *Server) listenHapEvents() {
 	lightCh := s.hkSrv.LightEventsCh()
 
 	for v := range lightCh {
+		log.Debg.Printf("got %v from lightCh", v)
+
 		if v {
 			err := s.light.On()
 			if err != nil {

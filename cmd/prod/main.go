@@ -139,7 +139,7 @@ func makeHkSrv(db hap.Store) *homekit.HapSrv {
 }
 
 func setupLogger() {
-	log.Debg.Off()
+	//log.Debg.Off()
 
 	err := logger.ChangePackageLogLevel("i2c", logger.InfoLevel)
 	if err != nil {
