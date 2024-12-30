@@ -17,17 +17,17 @@ func NewUsbGarland() (*UsbGarland, error) {
 		return nil, err
 	}
 
-	return &UsbGarland{}
+	return &UsbGarland{}, nil
 }
 
 func (u *UsbGarland) On() error {
-	cmdOn = exec.Command("sudo", "uhubctl", "-l", "1", "-a", "on")
+	cmdOn := exec.Command("sudo", "uhubctl", "-l", "1", "-a", "on")
 
 	return cmdOn.Run()
 }
 
 func (u *UsbGarland) Off() error {
-	cmdOff = exec.Command("sudo", "uhubctl", "-l", "1", "-a", "off")
+	cmdOff := exec.Command("sudo", "uhubctl", "-l", "1", "-a", "off")
 
 	return cmdOff.Run()
 }
