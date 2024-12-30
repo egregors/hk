@@ -122,6 +122,13 @@ func makeHkSrv(db hap.Store) *homekit.HapSrv {
 			Model:        "BME280",
 			Firmware:     "-",
 		}),
+		Light: accessory.NewLightbulb(accessory.Info{
+			Name:         "Garland",
+			SerialNumber: "-",
+			Manufacturer: "noname",
+			Model:        "-",
+			Firmware:     "-",
+		}),
 	})
 	if err != nil {
 		log.Erro.Printf("can't create HAP server: %s", err.Error())
