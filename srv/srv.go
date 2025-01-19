@@ -237,9 +237,9 @@ func (s *Server) title() string {
 
 func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string {
 	var builder strings.Builder
-	builder.WriteString("+----------------+---------+--------+\n")
-	builder.WriteString("|    Datetime    |    T    |    H   |\n")
-	builder.WriteString("+----------------+---------+--------+\n")
+	builder.WriteString("+-------------------+---------+---------+\n")
+	builder.WriteString("| Datetime          |    T    |    H    |\n")
+	builder.WriteString("+-------------------+---------+---------+\n")
 
 	merge := make(map[string][]float64)
 
@@ -266,8 +266,8 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 		allKeys = append(allKeys, k)
 	}
 	if len(allKeys) == 0 {
-		// show "nothing to show"
-		builder.WriteString("|      -         |    -    |    -   |\n")
+		// show "nothing to show
+		builder.WriteString("|         -         |    -    |    -    |\n")
 
 		return builder.String()
 	}
@@ -290,10 +290,10 @@ func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string
 			fmt.Sprint(strings.Split(split[1], ":")[0] + "h"),
 		}, " ")
 		// TODO: put tempProgressionMark back, instead of ""
-		builder.WriteString(fmt.Sprintf("| %-14s | %1s%6.2f | %6.2f |\n", timeMark, "", val[0], val[1]))
+		builder.WriteString(fmt.Sprintf("| %-17s | %7.2f | %7.2f |\n", timeMark, val[0], val[1]))
 	}
-	//                      | 2024-11-08 18h | ~ 34.93 |  54.58 |
-	builder.WriteString("+----------------+---------+--------+\n")
+	//                      | 2024-11-08 18h    |  34.93  |  54.58  |
+	builder.WriteString("+-------------------+---------+---------+\n")
 
 	return builder.String()
 }
