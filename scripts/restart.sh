@@ -10,7 +10,7 @@ rm nohup.out 2>/dev/null || true
 echo "---"
 
 echo "kill prev srv"
-pkill "$BIN" || { echo "Failed to kill $BIN"; }
+pkill "$BIN" || { echo "Failed to kill $BIN"; exit 1; }
 
 nohup ./"$BIN" &
 SERVER_PID=$!
