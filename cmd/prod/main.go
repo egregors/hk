@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"flag"
 	"github.com/egregors/hk/internal/light"
+	"github.com/egregors/hk/internal/ntfy"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -27,12 +30,30 @@ const (
 var revision = "HEAD"
 
 func main() {
+	// Parse command line flags
+	ntfyURL := flag.String("ntfy-url", "", "ntfy.sh URL with topic for error notifications")
+	ntfyEnabled := flag.Bool("ntfy-enabled", false, "enable ntfy notifications")
+	flag.Parse()
+
+	// Check environment variables if flags not provided
+	if *ntfyURL == "" {
+		*ntfyURL = os.Getenv("NTFY_URL")
+	}
+	if !*ntfyEnabled {
+		if enabled := os.Getenv("NTFY_ENABLED"); enabled != "" {
+			if parsed, err := strconv.ParseBool(enabled); err == nil {
+				*ntfyEnabled = parsed
+			}
+		}
+	}
+
 	setupLogger()
 	log.Info.Printf("🇭🇰 revision: %s", revision)
 
 	db := hap.NewFsStore("./db")
 	m, dumpFn := makeMetrics()
-	server := srv.New(db, makeClimate(), makeLight(), makeHkSrv(db), m)
+	notifier := makeNotifier(*ntfyURL, *ntfyEnabled)
+	server := srv.New(db, makeClimate(), makeLight(), makeHkSrv(db), m, notifier)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go graceful(cancel, dumpFn)
@@ -136,6 +157,19 @@ func makeHkSrv(db hap.Store) *homekit.HapSrv {
 	}
 
 	return hk
+}
+
+func makeNotifier(url string, enabled bool) srv.Notifier {
+	if !enabled || url == "" {
+		log.Info.Println("ntfy notifications disabled")
+		return &ntfy.NoopNotifier{}
+	}
+
+	log.Info.Printf("ntfy notifications enabled with URL: %s", url)
+	return ntfy.New(ntfy.Config{
+		URL:     url,
+		Enabled: enabled,
+	})
 }
 
 func setupLogger() {

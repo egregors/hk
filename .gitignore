@@ -29,3 +29,7 @@ db/
 
 # app dump
 hk-dump.gob
+
+# test binaries
+test-dev
+test-build
