@@ -70,6 +70,7 @@ type Server struct {
 
 	sensorStatus string
 	sensorErr    error
+	startTime    time.Time
 
 	mu           *sync.RWMutex
 	currT, currH float64
@@ -93,6 +94,7 @@ func New(
 		notifier:     notifier,
 		sensorStatus: ONLINE,
 		sensorErr:    nil,
+		startTime:    time.Now(),
 		mu:           &sync.RWMutex{},
 	}
 }
@@ -249,7 +251,28 @@ func (s *Server) title() string {
 		err = "Error: " + s.sensorErr.Error() + "\n"
 	}
 
-	return fmt.Sprintf("Sensor: %s\n%s", status, err)
+	uptime := s.formatUptime()
+	return fmt.Sprintf("Sensor: %s %s\n%s", status, uptime, err)
+}
+
+func (s *Server) formatUptime() string {
+	duration := time.Since(s.startTime)
+	minutes := int(duration.Minutes())
+	
+	if minutes < 60 {
+		return fmt.Sprintf("(uptime: %dm)", minutes)
+	}
+	
+	hours := minutes / 60
+	remainingMinutes := minutes % 60
+	
+	if hours < 24 {
+		return fmt.Sprintf("(uptime: %dh %dm)", hours, remainingMinutes)
+	}
+	
+	days := hours / 24
+	remainingHours := hours % 24
+	return fmt.Sprintf("(uptime: %dd %dh %dm)", days, remainingHours, remainingMinutes)
 }
 
 func renderHourlyAvgTable(hourlyAverageT, hourlyAverageH []metrics.Value) string {
