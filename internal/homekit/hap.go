@@ -31,10 +31,10 @@ func NewHapSrv(hapSrvOpts *HapSrvOpts) (*HapSrv, error) {
 	log.Info.Println("make HapSrv")
 
 	// see: https://github.com/brutella/hap/pull/53
-	hapSrvOpts.Bridge.A.Id = 1
-	hapSrvOpts.Thermometer.A.Id = 2
-	hapSrvOpts.Humidifier.A.Id = 3
-	hapSrvOpts.USB2Power.A.Id = 4
+	hapSrvOpts.Bridge.Id = 1
+	hapSrvOpts.Thermometer.Id = 2
+	hapSrvOpts.Humidifier.Id = 3
+	hapSrvOpts.USB2Power.Id = 4
 
 	s, err := hap.NewServer(
 		hapSrvOpts.DB,

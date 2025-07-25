@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+
 	"github.com/egregors/hk/internal/light"
+	"github.com/egregors/hk/internal/notifier"
+
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,7 +33,14 @@ func main() {
 
 	db := hap.NewFsStore("./db")
 	m, dumpFn := makeMetrics()
-	server := srv.New(db, makeClimate(), makeLight(), makeFakeHkSrv(), m)
+	server := srv.New(
+		db,
+		makeClimate(),
+		makeLight(),
+		makeFakeHkSrv(),
+		m,
+		notifier.NewNoop(),
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go graceful(cancel, dumpFn)

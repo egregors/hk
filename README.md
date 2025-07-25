@@ -1,14 +1,16 @@
-# 🇭🇰 hk – HomeKit BME280 sensor integration + web iface
+# 🇭🇰 hk – HomeKit BME280 sensor integration + web iface + notifications
 
-Integration temperature and humidity sensor (bosch BME280) with Raspberry Pi and Apple HomeKit
+Smart temperature and humidity monitoring system with BME280 sensor, Raspberry Pi, Apple HomeKit integration, and intelligent notification system.
 
 ## tl;dr
 
-In general, this project is just 3 parts combined:
+In general, this project is a comprehensive IoT solution combining:
 
-* Raspberry Pi + BME280 sensor integration – to get temperature and humidity data
-* Simple web server – to expose the data to local network
-* HAP server – to expose the data to HomeKit in order to be able to use it in Home app
+* **Hardware**: Raspberry Pi + BME280 sensor integration – to get temperature and humidity data
+* **Web Interface**: Simple web server – to expose the data to local network with metrics visualization
+* **HomeKit**: HAP server – to expose the data to HomeKit for use in Apple Home app
+* **Monitoring**: Smart notification system – to alert you when sensor issues occur
+* **Persistence**: Metrics collection with backup/restore and autosave capabilities
 
 ### Features:
 
@@ -16,9 +18,13 @@ In general, this project is just 3 parts combined:
 * Web server to expose the data
 * Simple metrics collection with retention and Braille graph
 * Backup and restore collected data (gob dump)
+* Autosave metrics with configurable intervals
 * Logging
 * HomeKit integration
 * Custom PIN for HomeKit
+* Smart notification system (ntfy.sh support)
+* Automatic error notifications for sensor failures
+* USB power control for external devices (like LED garlands)
 
 ### Screenshots:
 <p align="center">
@@ -34,6 +40,36 @@ In general, this project is just 3 parts combined:
 Actual sensor code should be compiled on Raspberry Pi device. You can use any other device to compile the code, but you
 should copy the binary to Raspberry Pi device to run it.
 In purpose to make development process less painful there is a `ClimateSensor` interface. So, you need to install
+
+### Environment Variables
+
+For production mode, you can configure notifications:
+
+* `NOTIFY_URL` - URL for ntfy.sh notifications (optional). If set, the system will send notifications when sensor errors occur.
+
+Example:
+```bash
+export NOTIFY_URL="https://ntfy.sh/your-topic-name"
+```
+
+### Build and Run
+
+The project supports two build modes:
+
+1. **Development mode** (`cmd/dev/main.go`):
+   - Uses NoopHap (fake HomeKit server) for development
+   - Uses Noop notifier (no actual notifications)
+   - Shorter metrics retention (3600 hours)
+   - Suitable for testing and development
+
+2. **Production mode** (`cmd/prod/main.go`):
+   - Full HomeKit integration with real HAP server
+   - ntfy.sh notifications support
+   - Longer metrics retention (30 days)
+   - Autosave metrics every 60 minutes
+   - Requires `NOTIFY_URL` environment variable for notifications
+
+Build and deploy:
 
 ```shell
 egregors@pi:~/Github/hk $ gh repo sync
@@ -98,10 +134,38 @@ egregors@pi:~ $ i2cdetect -y 1
 70: -- -- -- -- -- -- -- 77
 ```
 
+## Notification System
+
+The project includes a smart notification system that monitors sensor health and sends alerts when issues occur.
+
+### Features:
+
+* **ntfy.sh integration** - Send push notifications to your devices via ntfy.sh service
+* **Automatic error detection** - Monitor BME280 sensor connectivity and data integrity
+* **Configurable notifications** - Easy setup with environment variables
+* **Graceful fallback** - System continues to work even if notifications fail
+
+### Setup:
+
+1. Choose or create a topic on [ntfy.sh](https://ntfy.sh)
+2. Set the `NOTIFY_URL` environment variable:
+   ```bash
+   export NOTIFY_URL="https://ntfy.sh/your-unique-topic-name"
+   ```
+3. Subscribe to the topic on your mobile device using the ntfy app
+4. Run the production build - you'll receive notifications when sensor errors occur
+
+### Notification Types:
+
+* **Sensor Error** - Triggered when BME280 sensor fails to read temperature or humidity data
+* **I/O Errors** - Hardware communication issues (e.g., "write /dev/i2c-1: remote I/O error")
+* **Connection Problems** - When sensor becomes unresponsive
+
 ## References
 
 * https://github.com/brutella/hap – HomeKit Accessory Protocol implementation in Go
 * https://github.com/d2r2/go-bsbmp – BME280 sensor driver in Go
+* https://ntfy.sh – Simple HTTP-based pub-sub notification service
 
 ## Contributing
 

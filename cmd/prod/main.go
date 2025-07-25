@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+
 	"github.com/egregors/hk/internal/light"
+	"github.com/egregors/hk/internal/notifier"
+
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,7 +35,20 @@ func main() {
 
 	db := hap.NewFsStore("./db")
 	m, dumpFn := makeMetrics()
-	server := srv.New(db, makeClimate(), makeLight(), makeHkSrv(db), m)
+	ntfyURL := getFromEnv("NOTIFY_URL", "")
+	if ntfyURL != "" {
+		log.Erro.Printf("notify URL can't be empty")
+		os.Exit(1)
+	}
+
+	server := srv.New(
+		db,
+		makeClimate(),
+		makeLight(),
+		makeHkSrv(db),
+		m,
+		notifier.NewNtfy(ntfyURL),
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go graceful(cancel, dumpFn)
@@ -41,6 +57,15 @@ func main() {
 		log.Erro.Printf("can't run server: %s", err.Error())
 		os.Exit(1)
 	}
+}
+
+func getFromEnv(name string, def string) string {
+	val := os.Getenv(name)
+	if val == "" {
+		return def
+	}
+
+	return val
 }
 
 func graceful(cancel context.CancelFunc, dumpFn metrics.DumpFn) {

@@ -55,6 +55,10 @@ type Metrics interface {
 	Avg(key string, dur time.Duration) []metrics.Value
 }
 
+type Notifier interface {
+	Notify(title, message string) error
+}
+
 type Server struct {
 	webSrv    *http.Server
 	hkSrv     HapServer
@@ -62,6 +66,7 @@ type Server struct {
 	usb2power USB2PowerCtrl
 	store     Store
 	metrics   Metrics
+	notifier  Notifier
 
 	sensorStatus string
 	sensorErr    error
@@ -76,6 +81,7 @@ func New(
 	usb2power USB2PowerCtrl,
 	hapSrv HapServer,
 	metrics Metrics,
+	notifier Notifier,
 ) *Server {
 	return &Server{
 		webSrv:       nil,
@@ -84,6 +90,7 @@ func New(
 		usb2power:    usb2power,
 		store:        store,
 		metrics:      metrics,
+		notifier:     notifier,
 		sensorStatus: ONLINE,
 		sensorErr:    nil,
 		mu:           &sync.RWMutex{},
@@ -137,6 +144,16 @@ func (s *Server) pullDataFromSensor() {
 			log.Erro.Printf("can't get sensor data: %s", err.Error())
 			s.sensorStatus = OFFLINE
 			s.sensorErr = err
+			go func() {
+				if s.notifier != nil {
+					err := s.notifier.Notify("Sensor Error", err.Error())
+					if err != nil {
+						log.Erro.Printf("can't send notification: %s", err.Error())
+					} else {
+						log.Info.Println("notification sent")
+					}
+				}
+			}()
 		}
 	}()
 
