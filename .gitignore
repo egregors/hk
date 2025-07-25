@@ -29,3 +29,6 @@ db/
 
 # app dump
 hk-dump.gob
+
+# temporary development mock files
+*_linux_amd64.go
