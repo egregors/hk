@@ -161,6 +161,44 @@ The project includes a smart notification system that monitors sensor health and
 * **I/O Errors** - Hardware communication issues (e.g., "write /dev/i2c-1: remote I/O error")
 * **Connection Problems** - When sensor becomes unresponsive
 
+## USB Power Control
+
+The project includes USB power control functionality for external devices (like LED garlands) using [uhubctl](https://github.com/mvp/uhubctl).
+
+### Features:
+
+* **Dynamic hub detection** - Automatically detects USB hub location on startup
+* **Restart resilient** - Works correctly even after Raspberry Pi restarts when hub addresses may change
+* **HomeKit integration** - Control USB power through Apple Home app
+* **Smart hub selection** - Prefers hubs with per-port power switching (ppps) capability
+
+### Setup:
+
+1. Install uhubctl on your Raspberry Pi:
+   ```bash
+   sudo apt-get install uhubctl
+   ```
+
+2. Ensure your USB hub supports per-port power switching. Check with:
+   ```bash
+   sudo uhubctl
+   ```
+
+3. The system will automatically detect the correct hub location on startup and log it:
+   ```
+   [INFO] detected USB hub location: 1-1
+   ```
+
+### How It Works:
+
+On startup, the system:
+1. Runs `uhubctl` to list all available USB hubs
+2. Parses the output to find controllable hubs
+3. Prioritizes hubs with per-port power switching (ppps)
+4. Stores the detected location for all subsequent power control operations
+
+This ensures reliable USB power control even if hub addresses change after a restart.
+
 ## References
 
 * https://github.com/brutella/hap – HomeKit Accessory Protocol implementation in Go
