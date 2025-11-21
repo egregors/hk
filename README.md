@@ -1,5 +1,7 @@
 # 🇭🇰 hk – HomeKit BME280 sensor integration + web iface + notifications
 
+[![Test](https://github.com/egregors/hk/actions/workflows/test.yml/badge.svg)](https://github.com/egregors/hk/actions/workflows/test.yml)
+
 Smart temperature and humidity monitoring system with BME280 sensor, Raspberry Pi, Apple HomeKit integration, and intelligent notification system.
 
 ## tl;dr
